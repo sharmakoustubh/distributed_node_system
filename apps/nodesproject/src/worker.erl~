@@ -1,0 +1,46 @@
+-module(worker).
+-compile(export_all).
+
+start() ->
+    connection_establisher(),
+    Pid1 = spawn(fun()-> listen_to_distributor() end),
+    register(worker,Pid1),
+    Pid2 = spawn(fun()-> maintain_tasks_list() end),
+    register(tasks, Pid2),
+    Pid3 = spawn(fun()-> execute_tasks() end),
+    register(execute, Pid2).
+    
+connection_establisher()->    
+    {ok,Hostname} = inet:gethostname(),
+    Host = "distributor@" ++ Hostname,
+    net_kernel:connect_node(list_to_atom(Host)).
+
+listen_to_distributor() ->
+    receive
+	{worker,Task}->
+	    tasks! {append,Task}
+    end,
+    listen_to_distributor().
+
+maintain_tasks_list() ->
+    receive 
+	{append,X}->
+	    lists:append(X,Tasks_list);
+	pop ->
+	    hd(Tasks_list)
+		
+    end
+	maintain_tasks_list().
+
+execute_tasks()->
+
+
+    Task = ,
+    catch tasks ! pop of
+		    {error,Error}->
+		       Error;
+	Result ->
+		       Result
+	       end
+execute_tasks().
+
