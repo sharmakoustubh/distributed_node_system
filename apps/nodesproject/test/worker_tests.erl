@@ -43,8 +43,6 @@ ensure_exited() ->
 	    timer:sleep(10),
 	    ensure_exited()
     end.
-    
-
 
 adding_to_the_queue()->
     F = fun()-> lists:seq(2,7) end,

@@ -34,21 +34,21 @@ maintain_tasks_list(Tasks_list) ->
     send_checkout_for_old_tasks(Old_tasks),
     
     receive 
-	{append,X,Pid,Ref}->
+	{append,X,From,Ref}->
 	    Updated_tasks_list = lists:append(New_tasks,[{X,Ref,os:timestamp()}]),
-	    Pid ! {appended, Ref},
+	    From ! {appended, Ref},
 	    maintain_tasks_list(Updated_tasks_list);
-	{pop,Pid,Ref} ->
+	{pop,From,Ref} ->
 	    [H,T]= New_tasks,
-	    Pid ! {H, Ref},
+	    From ! {H, Ref},
 	    maintain_tasks_list(T);
-	{length,Pid,Ref} ->
-	    Pid ! length(New_tasks,Ref),		
+	{length,From,Ref} ->
+	    From ! {length(New_tasks),Ref},		
 	    maintain_tasks_list(New_tasks)
     end.
 
 send_checkout_for_old_tasks(Old_tasks)->
-    caller!{checked_out_tasks,Old_tasks}.
+    {checked_out_tasks, Old_tasks}.
 
 execute_tasks()->
     Ref = make_ref(),
@@ -59,7 +59,7 @@ execute_tasks()->
 		{error,Error}->
 		    Error;
 		Result ->
-		    Result			
+		    caller ! Result
 	    end
     after 5000 ->
 	    do_nothing
