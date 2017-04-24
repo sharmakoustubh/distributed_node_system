@@ -1,82 +1,87 @@
 -module(worker_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+
 worker_test_()->
     {foreach,
      fun setup/0,
      fun cleanup/1,
      [
-      fun adding_to_the_queue/0,
-      fun adding_to_the_queue_and_pop/0
-     ]
-    }.
-     
-setup()->
-    worker:start().
+      {"add to the task queue", fun adding_to_the_queue/0},
+      {"add to the queue and execute", fun adding_to_the_queue_and_execute/0},
+      {"add to the queue and check length", fun adding_to_queue_and_check_length/0}
+     ]}.
 
+setup()->
+    ok = worker:start().
+  
 cleanup(_)->
     exit(whereis(worker),kill),
-    exit(whereis(tasks),kill),
+    ensure_exited(worker),
     exit(whereis(execute),kill),
-    ensure_exited().
+    ensure_exited(execute),
+    exit(whereis(tasks),kill),
+    ensure_exited(tasks).
 
-
-ensure_exited() ->
-    case whereis(worker) of
+ensure_exited(Process) ->
+    case whereis(Process) of
 	undefined ->
 	    ok;
 	_ ->
-	    timer:sleep(10),
-	    ensure_exited()
-    end,       
-    case whereis(tasks) of
-	undefined ->
-	    ok;
-	_ ->
-	    timer:sleep(10),
-	    ensure_exited()
-    end,
-    case whereis(execute) of
-	undefined ->
-	    ok;
-	_ ->
-	    timer:sleep(10),
-	    ensure_exited()
+	    ensure_exited(Process)
     end.
 
 adding_to_the_queue()->
     F = fun()-> lists:seq(2,7) end,
     Ref = make_ref(),
-    worker ! {worker, F, self(), Ref},
+    worker ! {append, F, self(), Ref},
     Result = receive
-		 X ->
+		 {X, Ref} ->
 		     X
 	     after 5000 ->
 		     no_response_received
 	     end,
     ?assertEqual(appended,Result).    
 
-
-adding_to_the_queue_and_pop()->
+adding_to_the_queue_and_execute()->
     F = fun()-> lists:seq(2,7) end,
-    Ref1 = make_ref(),
-    worker ! {worker, F, self(), Ref1},
+    Ref = make_ref(),
+    worker ! {append, F, self(), Ref},
     Result1 = receive
-		 X1 ->
-		     X1
-	     after 5000 ->
-		     no_response_received
-	     end,
+		  {X1, Ref} ->
+		      X1
+	      after 50 ->
+		      no_response_received
+	      end,
     ?assertEqual(appended,Result1),
-    timer:sleep(5000),
-    Ref2 = make_ref(),
-    worker ! {length,self(),Ref2},
     Result2 = receive
-		 X2 ->
-		     X2
-	     after 5000 ->
+		  {X2, Ref} ->
+		      X2
+	      after 2000 ->
+		      no_response_received
+	     end,
+    ?assertEqual(F(),Result2).    
+
+adding_to_queue_and_check_length()->
+    F = fun()-> lists:seq(2,7) end,
+    Ref = make_ref(),
+    worker ! {append, F, self(), Ref},
+    Result = receive
+		 {X, Ref} ->
+		     X
+	     after 50 ->
 		     no_response_received
 	     end,
-    ?assertEqual(0,Result2).    
+    ?assertEqual(appended,Result),
+    Ref2 = make_ref(),
+    worker ! {length, self(), Ref2},
+    Result2 = receive
+		  {L, Ref2} ->
+		      L
+	      after 2000->
+		      no_response_received
+	      end,
+    ?assertEqual(0, Result2).
+
 
 
