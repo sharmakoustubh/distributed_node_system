@@ -1,54 +1,59 @@
 -module(distributor).
--export([start/0]).
+-export([start/0,
+	 get_workers/0,
+	 get_least_busy_node/0,
+	 starts_with_alice_or_bob/1,
+	 get_length/1]).
+-compile(export_all).
 
 
 start()->
-    Pid = spawn(fun()-> listen_to_caller()end),
-    register(distributor,Pid),
-    erlang:set_cookie(node(),distribute).
+    Pid = spawn(fun()-> loop() end),
+    register(distributor,Pid).
 
-
-listen_to_caller()->
-    Ref = make_ref(),
+loop() ->
     receive
-        Task ->
-    	    Nodes = get_nodes(),
-    	    Node = get_least_busy_node(Nodes, [], 9999),
-    	    {worker,Node} ! {append, Task, self(), Ref}
-    end,
-    listen_to_caller().
-
-get_least_busy_node([], Least_busy_node, _) ->
-    Least_busy_node;
-
-get_least_busy_node([Node|Nodes], Least_busy_node, Lmin) ->
-    Ref = make_ref(),
-    {worker,Node} ! {length, self(), Ref},
-    receive
-	{L,Ref} ->
-	    case L =< Lmin of
-		true ->
-		Least_busy_node = Node,
-		Lmin = L;
-		_ -> 
-		   do_nothing
-	    end
-    end,
-get_least_busy_node([Node|Nodes], Least_busy_node, Lmin).
+	{Caller, Task, Ref} ->
+	    Least_busy_node = get_least_busy_node(),
+	    {Least_busy_node, worker} ! {append, Task, Caller, Ref}
+    end.
 	    
-    
-get_nodes()->
-    List_of_nodes =  nodes(),
-    lists:flatten(filter_nodes(List_of_nodes, [])).
-    
-filter_nodes([], Acc)->
-    Acc;
 
-filter_nodes([N|Nodes], Acc)->
-    case string:str(atom_to_list(N)) of
-	"bob" ->
-	    Acc = Acc ++ N;
-	"alice" ->
-	    Acc = Acc ++ N
-    end,
-    filter_nodes([Nodes], Acc).
+get_workers() ->
+    [N || N <- nodes(), starts_with_alice_or_bob(N)].
+
+starts_with_alice_or_bob(Short_host) ->
+    Host = atom_to_list(Short_host),
+    case string:tokens(Host, "@") of
+	[User, _] ->
+	    lists:member(User, ["alice", "bob"]);
+	_ ->
+	    false
+    end.    
+
+get_least_busy_node() ->
+    Workers = distributor:get_workers(),
+    List = [{N, distributor:get_length(N)} || N <- Workers],
+    get_node_with_least_length_value(List, {somenode@host, 9999}).
+
+get_node_with_least_length_value([],{Node, _})->
+    Node;
+get_node_with_least_length_value([H|T], {Node, Lmin})->
+    {Node_current,Len_current} = H,
+    {Node_Res, Lmin_Res} = case Len_current < Lmin of
+			       true  ->
+				   {Node_current, Len_current};
+			       false ->
+				   {Node, Lmin}
+			   end,
+    get_node_with_least_length_value(T, {Node_Res, Lmin_Res}).
+				   
+	
+
+get_length(Node) ->
+    Ref = make_ref(),
+    {Node, worker} ! {length, self(), Ref},
+    receive
+	{L, Ref} ->
+	    L
+    end.

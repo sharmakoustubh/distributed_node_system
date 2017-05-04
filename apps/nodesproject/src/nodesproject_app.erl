@@ -8,7 +8,7 @@
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1]).
+-export([stop/1]).
 
 %%====================================================================
 %% API
@@ -24,3 +24,28 @@ stop(_State) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+start(Node)->
+  Res =  check_node_exists(Node),
+   case Res of 
+       true ->
+	  
+	   case Node of
+	       distributor ->
+		   distributor:start();
+	       caller ->
+		   caller:start();
+	       _->
+		   worker:start()
+	   end;
+       false ->
+	   io:format("given role ~p does not exit~n",[Node])
+   end.
+
+give_node_name(Type)->
+    net_kernel:start([Type, shortnames]).
+
+check_node_exists(Node)->
+    List = [bob,alice,distributor,caller],
+    lists:member(Node,List).
+    

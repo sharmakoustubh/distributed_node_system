@@ -1,129 +1,57 @@
 -module(distributor_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+alice_starts_with_alice_or_bob_test() ->
+    Input = alice@shortname,
+    Result = distributor:starts_with_alice_or_bob(Input),
+    ?assertEqual(true, Result).
 
-distributor_test_()->
-    {foreach,
+bob_starts_with_alice_or_bob_test() ->
+    Input = bob@shortname,
+    Result = distributor:starts_with_alice_or_bob(Input),
+    ?assertEqual(true, Result).
+
+carol_does_not_start_with_alice_or_bob_test() ->
+    Input = carol@shortname,
+    Result = distributor:starts_with_alice_or_bob(Input),
+    ?assertEqual(false, Result).
+
+an_invalid_hostname_does_not_start_with_alice_or_bob_test() ->
+    Input = alkfdsjhalkfsj,
+    Result = distributor:starts_with_alice_or_bob(Input),
+    ?assertEqual(false, Result).
+
+
+get_least_busy_node_test_() ->
+    {setup,
      fun setup/0,
      fun cleanup/1,
-     [
-    %%  {"check you get bob and alice", fun get_nodes/0}
-   %%   {"get least busy nodes", fun find_node_with_lesser_tasks/0},
-     ]}.
+     [ {"get the worker nodes",fun get_worker_nodes/0},
+       {"get the length of the provided node",fun get_length_of_node/0},
+       {"get the shortest queue",fun get_least_busy_node_should_return_worker_with_shortest_queue/0}]
+    }.
 
-setup()->
-    ok = worker:start(),
-    distributor:start().
+setup() ->
+    meck:new(distributor, [passthrough]),
+    meck:expect(distributor, get_workers, fun()-> [alice@host, bob@host] end),
+    meck:expect(distributor, get_length, fun(alice@host) -> 1;
+					    (bob@host) -> 2
+					 end).
+
+cleanup(_) ->
+    meck:unload(distributor).
     
-  
-cleanup(_)->
-    exit(whereis(worker),kill),
-    ensure_exited(worker),
-    exit(whereis(execute),kill),
-    ensure_exited(execute),
-    exit(whereis(tasks),kill),
-    ensure_exited(tasks),
-    exit(whereis(distributor),kill),
-    ensure_exited(distributor).
+get_worker_nodes()->
+    Result = distributor:get_workers(),
+    Expected = [alice@host, bob@host],
+    ?assertEqual(Expected, Result).
 
-ensure_exited(Process) ->
-    case whereis(Process) of
-	undefined ->
-	    ok;
-	_ ->
-	    ensure_exited(Process)
-    end.
+get_length_of_node()->
+    Result = distributor:get_length(bob@host),
+    Expected = 2,
+    ?assertEqual(Expected, Result).
 
-%% get_nodes() ->
-%%     Res = distributor:get_nodes(),
-%%     ?assertMatch([bob,alice],Res).
-    
-
-%% find_node_with_lesser_tasks() ->
-%%     F = fun()-> lists:seq(2,7) end,
-%%     Ref = make_ref(),
-%%     worker ! {append, F, self(), Ref},
-%%     Result1 = receive
-%% 		  {X1, Ref} ->
-%% 		      X1
-%% 	      after 50 ->
-%% 		      no_response_received
-%% 	      end,
-%%     ?assertEqual(appended,Result1),
-%%     Result2 = receive
-%% 		  {X2, Ref} ->
-%% 		      X2
-%% 	      after 2000 ->
-%% 		      no_response_received
-%% 	     end,
-%%     ?assertEqual(F(),Result2),
-%%     distributor:get_least_busy_node(nodes(),[], 9999).
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% %% adding_to_the_queue()->
-%% %%     F = fun()-> lists:seq(2,7) end,
-%% %%     Ref = make_ref(),
-%% %%     worker ! {append, F, self(), Ref},
-%% %%     Result = receive
-%% %% 		 {X, Ref} ->
-%% %% 		     X
-%% %% 	     after 5000 ->
-%% %% 		     no_response_received
-%% %% 	     end,
-%% %%     ?assertEqual(appended,Result).    
-
-%% %% adding_to_the_queue_and_execute()->
-%% %%     F = fun()-> lists:seq(2,7) end,
-%% %%     Ref = make_ref(),
-%% %%     worker ! {append, F, self(), Ref},
-%% %%     Result1 = receive
-%% %% 		  {X1, Ref} ->
-%% %% 		      X1
-%% %% 	      after 50 ->
-%% %% 		      no_response_received
-%% %% 	      end,
-%% %%     ?assertEqual(appended,Result1),
-%% %%     Result2 = receive
-%% %% 		  {X2, Ref} ->
-%% %% 		      X2
-%% %% 	      after 2000 ->
-%% %% 		      no_response_received
-%% %% 	     end,
-%% %%     ?assertEqual(F(),Result2).    
-
-%% %% adding_to_queue_and_check_length()->
-%% %%     F = fun()-> lists:seq(2,7) end,
-%% %%     Ref = make_ref(),
-%% %%     worker ! {append, F, self(), Ref},
-%% %%     Result = receive
-%% %% 		 {X, Ref} ->
-%% %% 		     X
-%% %% 	     after 50 ->
-%% %% 		     no_response_received
-%% %% 	     end,
-%% %%     ?assertEqual(appended,Result),
-%% %%     Ref2 = make_ref(),
-%% %%     worker ! {length, self(), Ref2},
-%% %%     Result2 = receive
-%% %% 		  {L, Ref2} ->
-%% %% 		      L
-%% %% 	      after 2000->
-%% %% 		      no_response_received
-%% %% 	      end,
-%% %%     ?assertEqual(0, Result2).
-
-
-
+get_least_busy_node_should_return_worker_with_shortest_queue() ->
+    Expected = alice@host,
+    Result = distributor:get_least_busy_node(),
+    ?assertEqual(Expected, Result).

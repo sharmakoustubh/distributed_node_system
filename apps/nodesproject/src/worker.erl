@@ -23,10 +23,9 @@ spawn_and_register_process(Function, Name)->
 	50 ->
 	    {error, "could not start process"}
     end.
-    
+      
 
 establish_connection()->  
-  %  erlang:set_cookie(node(),distribute),  
     {ok,Hostname} = inet:gethostname(),
     Host = "distributor@" ++ Hostname,
     net_kernel:connect_node(list_to_atom(Host)).
@@ -36,7 +35,7 @@ listen_to_distributor() ->
 	{append, Task, Pid, Ref}->
 	    tasks! {append,Task, Pid, Ref};
 	{length,Pid,Ref} ->
-	    tasks! {length,Pid,Ref}
+	    get_length(Pid, Ref)
     end,
     listen_to_distributor().
 
@@ -65,6 +64,15 @@ maintain_tasks_list(Tasks_list) ->
 			      New_tasks
 		      end,
     maintain_tasks_list(New_tasks_list).
+
+get_length(Pid, Ref) ->
+    tasks ! {length, Pid, Ref},
+    Res = receive
+	      {Length, Ref} ->
+		  Length
+	  end,
+    io:format(user,"got the length ~p~n ",[Res]),
+    Res.
 
 send_checkout_for_old_tasks([])->
     do_nothing;
