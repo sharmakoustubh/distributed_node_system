@@ -28,7 +28,9 @@ get_least_busy_node_test_() ->
      fun cleanup/1,
      [ {"get the worker nodes",fun get_worker_nodes/0},
        {"get the length of the provided node",fun get_length_of_node/0},
-       {"get the shortest queue",fun get_least_busy_node_should_return_worker_with_shortest_queue/0}]
+       {"get the shortest queue",fun get_least_busy_node_should_return_worker_with_shortest_queue/0},
+ {"get the short queue not bob oh bob hell not",fun get_least_busy_node_not_return_wrong_node/0}
+]
     }.
 
 setup() ->
@@ -55,3 +57,8 @@ get_least_busy_node_should_return_worker_with_shortest_queue() ->
     Expected = alice@host,
     Result = distributor:get_least_busy_node(),
     ?assertEqual(Expected, Result).
+
+get_least_busy_node_not_return_wrong_node() ->
+    Expected = bob@host,
+    Result = distributor:get_least_busy_node(),
+    ?assertNotEqual(Expected, Result).

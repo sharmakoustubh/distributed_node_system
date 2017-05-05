@@ -9,7 +9,8 @@
 
 start()->
     Pid = spawn(fun()-> loop() end),
-    register(distributor,Pid).
+    register(distributor,Pid),
+    Pid.
 
 loop() ->
     receive
@@ -48,8 +49,6 @@ get_node_with_least_length_value([H|T], {Node, Lmin})->
 			   end,
     get_node_with_least_length_value(T, {Node_Res, Lmin_Res}).
 				   
-	
-
 get_length(Node) ->
     Ref = make_ref(),
     {Node, worker} ! {length, self(), Ref},

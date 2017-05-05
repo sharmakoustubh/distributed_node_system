@@ -23,7 +23,7 @@ spawn_and_register_process(Function, Name)->
 	50 ->
 	    {error, "could not start process"}
     end.
-      
+
 
 establish_connection()->  
     {ok,Hostname} = inet:gethostname(),
@@ -92,6 +92,7 @@ execute_tasks()->
 		{error,Error}->
 		    Error;
 		Result ->
+		    io:format(user,"sending the result to ~p with ref ~p to pid  ~p~n ", [Result, Ref2, From]),
 		    From ! {Result, Ref2}
 	    end
     end,
