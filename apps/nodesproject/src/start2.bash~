@@ -1,0 +1,10 @@
+#!/bin/bash
+
+erl -sname bob <<EOF 
+worker:start() 
+
+EOF
+
+#erl -sname alice worker:start() &
+
+#erl -sname distributor distributor:start() &

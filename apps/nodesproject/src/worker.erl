@@ -7,6 +7,11 @@ start() ->
     spawn_and_register_process(fun listen_to_distributor/0,worker),
     spawn_and_register_process(fun() -> maintain_tasks_list([]) end, tasks),
     spawn_and_register_process(fun execute_tasks/0,execute).
+%% loop_around().
+
+%% loop_around()->
+%%     timer:sleep(500),
+%%     loop_around().
 
 spawn_and_register_process(Function, Name)->
     Ref = make_ref(),
@@ -23,7 +28,7 @@ spawn_and_register_process(Function, Name)->
 	50 ->
 	    {error, "could not start process"}
     end.
-
+ 
 
 establish_connection()->  
     {ok,Hostname} = inet:gethostname(),
@@ -48,6 +53,9 @@ maintain_tasks_list(Tasks_list) ->
     New_tasks_list =  receive 
 			  {append,X,From,Ref}->
 			      Updated_tasks_list = lists:append(New_tasks,[{X, From, Ref, os:timestamp()}]),
+			     %% io:format(user,"the task ~p appended in tasklist ~p ~n",[X, Updated_tasks_list]),
+			      file:write_file("./tmp/workeroutput.txt", io_lib:fwrite("~p \n", [X])),
+			      
 			      From ! {appended, Ref},
 			      Updated_tasks_list;
 			  {pop,From,Ref} ->
@@ -92,7 +100,7 @@ execute_tasks()->
 		{error,Error}->
 		    Error;
 		Result ->
-		    io:format(user,"sending the result to ~p with ref ~p to pid  ~p~n ", [Result, Ref2, From]),
+		    io:format(user,"sending the result from worker execute_tasks process to ~p with ref ~p to pid  ~p~n ", [Result, Ref2, From]),
 		    From ! {Result, Ref2}
 	    end
     end,

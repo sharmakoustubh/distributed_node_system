@@ -16,9 +16,12 @@ loop() ->
     receive
 	{Caller, Task, Ref} ->
 	    Least_busy_node = get_least_busy_node(),
+	    io:format(user,"got the task ~p sending it to ~p~n ",[Task, Least_busy_node]),
+	    file:write_file(".tmp/distributoroutput.txt", io_lib:fwrite("~p \n", [Task])),
 	    {Least_busy_node, worker} ! {append, Task, Caller, Ref}
-    end.
-	    
+    end,
+    loop().
+
 
 get_workers() ->
     [N || N <- nodes(), starts_with_alice_or_bob(N)].
