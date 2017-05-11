@@ -21,7 +21,6 @@ an_invalid_hostname_does_not_start_with_alice_or_bob_test() ->
     Result = distributor:starts_with_alice_or_bob(Input),
     ?assertEqual(false, Result).
 
-
 get_least_busy_node_test_() ->
     {setup,
      fun setup/0,
@@ -30,6 +29,26 @@ get_least_busy_node_test_() ->
        {"get the length of the provided node",fun get_length_of_node/0},
        {"get the shortest queue",fun get_least_busy_node_should_return_worker_with_shortest_queue/0}]
     }.
+
+get_least_busy_node_when_lots_of_jobs_are_present_test_() ->
+    {setup,
+     fun() ->
+	     meck:new(distributor, [passthrough]),
+	     meck:expect(distributor, get_workers, fun() -> [alice@host, bob@host] end),
+	     meck:expect(distributor, get_length, fun(alice@host) -> 1000000;
+						     (bob@host) -> 2000000
+						  end)
+     end,
+     fun(_) ->
+	     meck:unload(distributor)
+     end,
+     [fun() ->
+	      Expected = alice@host,
+	      Result = distributor:get_least_busy_node(),
+	      ?assertEqual(Expected, Result)
+      end]
+    }.
+	     
 
 setup() ->
     meck:new(distributor, [passthrough]),
