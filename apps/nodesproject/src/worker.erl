@@ -86,7 +86,7 @@ execute_tasks()->
 	{empty, Ref} ->
 	    ok;
 	{{Task, From, Ref2, _},Ref} ->
-	    io:format(user,"the task is received in execute process----->>  ~p from the tasks process ~n",[Task]),
+	    io:format(user,"the task is received in execute process-->  ~p from the tasks process ~n",[Task]),
 	    case Task() of
 		{error,Error}->
 		    Error;
