@@ -1,17 +1,18 @@
 -module(caller).
--export([start/0, send_task_and_get_result/0]).
+-export([start/0]).
 
 start()->
-    Pid = spawn(fun()-> send_task_and_get_result()end),
-    register(caller,Pid).
+    Pid =  spawn(fun() -> print_result() end),
+    register(caller_result,Pid).
 
-send_task_and_get_result()->
-    {ok,Hostname} = inet:gethostname(),
-    Distributor_node = list_to_atom("distributor@" ++ Hostname),
-    {Distributor_node,distributor} ! {self(), fun()-> lists:seq(2,8) end, make_ref()},
+
+print_result()->
     receive 
-	X ->
-            io:format(user,"~p~n",[X])            
+        X ->
+            io:format("~p~n",[X])            
     end,
-    X.
-    %% send_task_and_get_result().
+    print_result().
+
+
+
+
