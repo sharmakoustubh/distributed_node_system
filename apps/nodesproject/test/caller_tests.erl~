@@ -1,0 +1,7 @@
+-module(caller_tests).
+-include_lib("eunit/include/eunit.hrl").
+
+
+%% adding_task_to_the_queue_test()->
+%%     Result = caller:start(),    
+%%     ?assertEqual(appended,Result).    
